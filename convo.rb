@@ -18,10 +18,14 @@ EventMachine.run do
   
     channel.queue('states.convo', auto_delete: true).subscribe do |msg|
       puts "Mr. Obama, #{msg}"
-      connection.close { EventMachine.stop }
     end
   
     exchange = channel.direct ''
+
+    EventMachine.add_timer(3) do
+      exchange.delete
+      connection.close { EventMachine.stop }
+    end
   
     exchange.publish 'dinner at your place?', routing_key: 'china.convo' 
     exchange.publish 'subderby on friday?', routing_key: 'russia.convo'
