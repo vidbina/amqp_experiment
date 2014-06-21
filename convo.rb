@@ -7,26 +7,29 @@ require 'amqp'
 AMQP.start host: '127.0.0.1' do |connection|
   channel  = AMQP::Channel.new connection
 
-  channel.queue('china.convo', auto_delete: true).subscribe do |msg|
+  pm = channel.direct ''
+  g3 = channel.fanout 'g3'
+
+  channel.queue('china.convo', auto_delete: true).bind(g3).subscribe do |msg|
     puts "Mr. Jinping, #{msg}"
   end
 
-  channel.queue('russia.convo', auto_delete: true).subscribe do |msg|
+  channel.queue('russia.convo', auto_delete: true).bind(g3).subscribe do |msg|
     puts "Mr. Putin, #{msg}"
   end
 
-  channel.queue('states.convo', auto_delete: true).subscribe do |msg|
+  channel.queue('states.convo', auto_delete: true).bind(g3).subscribe do |msg|
     puts "Mr. Obama, #{msg}"
   end
 
-  exchange = channel.direct ''
-
   EventMachine.add_timer(3) do
-    exchange.delete
+    pm.delete
+    g3.delete
     connection.close { EventMachine.stop }
   end
 
-  exchange.publish 'dinner at your place?', routing_key: 'china.convo' 
-  exchange.publish 'submarine derby on friday?', routing_key: 'russia.convo'
-  exchange.publish 'is the hoop fixed? How about a 1 on 1, now?', routing_key: 'states.convo'
+  pm.publish 'dinner at your place?', routing_key: 'china.convo' 
+  pm.publish 'submarine derby on friday?', routing_key: 'russia.convo'
+  pm.publish 'is the hoop fixed? How about a 1 on 1, now?', routing_key: 'states.convo'
+  g3.publish 'do not forget that there is a nuclear summit in 3 days'
 end
